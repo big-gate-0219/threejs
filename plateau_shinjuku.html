@@ -22,6 +22,7 @@
         let cameraPos = new THREE.Vector3(0, 10, 0);
         let cameraRotation = 0;
         let meshs = [];
+        let isDebug = false;
 
         // シーンを追加
         const scene = new THREE.Scene();
@@ -29,16 +30,17 @@
 
         // ライトを追加
         // 環境光
-        // scene.fog = new THREE.Fog(0x000000, 10, 500);
-        // scene.add(new THREE.AmbientLight(0xcccccc, 0.5));
-        // scene.add(new THREE.DirectionalLight(0xFFFFFF, 1));
+        scene.fog = new THREE.Fog(0x000000, 10, 500);
+        scene.add(new THREE.AmbientLight(0xcccccc, 0.5));
+        scene.add(new THREE.DirectionalLight(0xffff00, 1));
         const light = new THREE.PointLight(0xFFFFFF, 2, 300, 1.0);
         scene.add(light);
 
         // 地面を追加
-        const geometry = new THREE.PlaneGeometry(1000, 1000);
-        const material = new THREE.MeshBasicMaterial({ color: 0x008800, side: THREE.DoubleSide });
-        const plane = new THREE.Mesh(geometry, material);
+        const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(1000, 1000),
+            new THREE.MeshBasicMaterial({ color: 0x008800, side: THREE.DoubleSide })
+        );
         plane.rotation.x = 90 * Math.PI / 180;
         scene.add(plane);
 
@@ -92,14 +94,15 @@
 
         function setCamera() {
             camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-            camera.rotation.y = Math.PI / 16 * cameraRotation;
+            camera.rotation.set(0, Math.PI / 16 * cameraRotation, 0);
             light.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-
-            // 動作確認用のコード
-            // camera.position.set(0, 1050, 200);
-            // camera.rotation.set(-1.5, 0, 0);
             cone.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
             cone.rotation.set(Math.PI / 16, getRadian(cameraRotation), Math.PI / 16 * 8);
+
+            if (isDebug) {
+                camera.position.set(0, 1200, 200);
+                camera.rotation.set(-1.5, 0, 0);
+            }
         }
 
         function getRadian(rotation) {
@@ -111,11 +114,16 @@
         }
 
         function moveforward(currentPosition, course, stepSize) {
+            const raycaster = new THREE.Raycaster();
             for (let i = 0; i < stepSize; i++) {
-                const raycaster = new THREE.Raycaster(currentPosition, course);
+                const sitenn = currentPosition.clone();
+                sitenn.y = 1;
+                raycaster.set(sitenn, course);
                 const found = raycaster.intersectObjects(meshs, true)[0];
-
-                if (!found || (found && found.distance > 10)) {
+                if (!found) {
+                    currentPosition.add(course);
+                } else if (found && found.distance > 10) {
+                    // found.object.material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
                     currentPosition.add(course);
                 }
             }
@@ -134,6 +142,8 @@
                 cameraRotation += 1;
             } else if (event.keyCode == 39) {
                 cameraRotation -= 1;
+            } else if (event.keyCode == 32) {
+                isDebug = !isDebug;
             }
 
             setCamera();
